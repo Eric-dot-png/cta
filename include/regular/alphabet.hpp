@@ -19,16 +19,18 @@ namespace cta
     {
         /** 
          * @breif Function to determine if a template pack of 
-         *        unsigned characters are all unique.
+         *        unsigned characters are distinct from eachother.
+         *        Used in this file to make sure that the pack argument
+         *        in Alphabet contains only unique characters.
          *
-         * @tparam Chars... the characters to check
+         * @tparam Chars the characters to check.
          * 
-         * @returns true if Chars... are unique, false otherwise
+         * @returns true if Chars are distinct, false otherwise.
          */
         template < unsigned char ... Chars >
-        consteval bool AreUnique() 
+        consteval bool AreDistinct() noexcept
         {
-            if constexpr (sizeof...(Chars) < 1) return true;
+            if constexpr (sizeof...(Chars) < 2) return true;
             
             std::array<unsigned char, sizeof...(Chars)> AsArray = { Chars... };
             std::sort(std::begin(AsArray), std::end(AsArray));
@@ -38,8 +40,23 @@ namespace cta
             return it == std::end(AsArray);
         }
 
+
+        /**
+         * @brief Function to populate a templated class T with a pack
+         *        of unsigned characters casted from an integer sequence.
+         *        Used in this file to facilitate the creation of the default
+         *        alphabet.
+         *
+         * @tparam T The class to populate.
+         * @tparam I The template parameter pack of idices in index_sequence
+         *           paramater.
+         *
+         * @param index_sequence Unused instance of an index sequence
+         *
+         * @return Instantiated class of type T packed with the unsinged chars.
+         */
         template < template<unsigned char...> class T, size_t... I>
-        consteval auto PopulateWith(std::index_sequence<I...>)
+        consteval auto PopulateWith(std::index_sequence<I...>) noexcept
         {
             return T<static_cast<unsigned char>(I)...>{ };
         }
@@ -48,21 +65,34 @@ namespace cta
     }; // namespace __detail
 
 
-    /** 
-     * @brief Alphabet type for regular languages
+    /**
+     * @brief Alphabet type for regular languages.
+     *
+     * @tparam Elements Characters to include in the alphabet.
+     *                  Constrained by requiring more than 0 characters, and
+     *                  also that the characters are distinct (See
+     *                  __detail::AreDistinct).
      */
     template < unsigned char... Elements >
-        requires (sizeof...(Elements) > 0 && __detail::AreUnique<Elements...>())
+        requires (sizeof...(Elements) > 0 && __detail::AreDistinct<Elements...>())
     struct Alphabet 
     {
         unsigned char Members[sizeof...(Elements)]; ///< Members of the alphabet
 
+        /**
+         * @brief constructor.
+         */
         constexpr Alphabet()
             : Members{ Elements... }
         {
             std::ranges::sort(Members);
         }
         
+        /**
+         * @brief Method to get the size of this alphabet.
+         *
+         * @return the size of this alphabet.
+         */
         [[nodiscard]] constexpr size_t Size() const noexcept
         { 
             return sizeof...(Elements); 
