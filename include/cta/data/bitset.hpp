@@ -11,6 +11,7 @@
 #include <bit>
 #include <stdexcept>
 #include <ranges>
+#include <utility>
 
 namespace cta 
 {
@@ -23,23 +24,32 @@ namespace cta
 
         /// @brief Constant for how many words needed in the bitset
         static constexpr size_t NUM_WORDS = (N + WORD_SIZE - 1) / WORD_SIZE;
-        
-    
+
+
         std::array<size_t, NUM_WORDS> words; ///< Words that make up bits
-    
-        
+
+
         constexpr bitset() noexcept
-            : words { 0 } 
+            : words { 0 }
         { }
-        
+
+
+        template < size_t... Values >
+            requires ((Values < N) && ...)
+        explicit constexpr bitset(std::index_sequence<Values...>) noexcept 
+            : bitset()
+        {
+            (set(Values), ...);
+        }
+
 
         constexpr bitset(const bitset&) = default;
 
 
-        constexpr bitset& operator=(const bitset&) = default;
+        [[nodiscard]] constexpr bitset& operator=(const bitset&) = default;
 
 
-        constexpr bool operator==(const bitset&) const = default;
+        [[nodiscard]] constexpr bool operator==(const bitset&) const = default;
 
 
         constexpr void set(size_t val) const
@@ -51,11 +61,11 @@ namespace cta
             
             size_t word_idx = val / WORD_SIZE;
             size_t offset   = val % WORD_SIZE;
-            return words[word_idx] & (1 << offset);
-
+            words[word_idx] &= (1 << offset);
         }
 
-        constexpr bool mem(size_t test) const noexcept
+
+        [[nodiscard]] constexpr bool mem(size_t test) const noexcept
         {
             if (test > N) {  return false; }
 
@@ -63,25 +73,41 @@ namespace cta
             size_t offset   = test % WORD_SIZE;
             return words[word_idx] >> offset & 1;
         }
-        
-        constexpr auto operator|(const bitset& other) const noexcept 
+
+
+        [[nodiscard]] bitset& operator|=(const bitset& other) noexcept 
         {
-            bitset cpy(other);
-            for (auto [idx, word] : std::ranges::views::enumerate(words))
+            namespace stdv = std::ranges::views;
+            for (auto [idx, word] : stdv::enumerate(other.words))
             {
-                cpy.words[idx] |= word;
+                words[idx] |= word;
             }
-            return cpy;
+            return *this;
         }
 
-        constexpr auto operator&(const bitset& other) const noexcept 
+
+        [[nodiscard]] bitset& operator&=(const bitset& other) noexcept 
         {
-            bitset cpy(other);
-            for (auto [idx, word] : std::ranges::views::enumerate(words))
+            namespace stdv = std::ranges::views;
+            for (auto [idx, word] : stdv::enumerate(other.words))
             {
-                cpy.words[idx] &= word;
+                words[idx] &= word;
             }
-            return cpy;
+            return *this;
+        }
+
+
+        [[nodiscard]] 
+            constexpr bitset operator|(const bitset& other) const noexcept 
+        {
+            return bitset(*this) |= other;
+        }
+
+
+        [[nodiscard]] 
+            constexpr bitset operator&(const bitset& other) const noexcept 
+        {
+            return bitset(*this) &= other;
         }
 
         /// @brief iterator type
@@ -160,7 +186,7 @@ namespace cta
          *        required by compiler for range-based for loops and STL
          *        compatibility.
          */ 
-        constexpr iterator begin() const noexcept
+        [[nodiscard]] constexpr iterator begin() const noexcept
         { 
             return iterator::find_next(*this, 0); 
         }
@@ -171,7 +197,7 @@ namespace cta
          *        required by compiler for range-based for loops and STL
          *        compatibility.
          */      
-        constexpr iterator end() const noexcept
+        [[nodiscard]] constexpr iterator end() const noexcept
         { 
             return { *this, N }; 
         }
