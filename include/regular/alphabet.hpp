@@ -69,14 +69,14 @@ namespace cta
         }
 
     }; // Alphabet
-    
-    using DefaultAlphabet = decltype(
+ 
+
+    inline constexpr auto DefaultAlphabet = 
         __detail::PopulateWith<Alphabet>(
             std::make_index_sequence<
                 std::numeric_limits<unsigned char>::max()+1
             >{}
-        )
-    );
+        );
 
 
 } // namespace cta
