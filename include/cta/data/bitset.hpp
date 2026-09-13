@@ -61,7 +61,7 @@ namespace cta
             
             size_t word_idx = val / WORD_SIZE;
             size_t offset   = val % WORD_SIZE;
-            words[word_idx] &= (1 << offset);
+            words[word_idx] |= (size_t{1} << offset);
         }
 
 
