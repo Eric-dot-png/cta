@@ -67,7 +67,7 @@ namespace cta
 
         [[nodiscard]] constexpr bool mem(size_t test) const noexcept
         {
-            if (test > N) {  return false; }
+            if (test >= N) {  return false; }
 
             size_t word_idx = test / WORD_SIZE;
             size_t offset   = test % WORD_SIZE;
