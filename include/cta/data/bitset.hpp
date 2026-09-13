@@ -51,7 +51,13 @@ namespace cta
 
         [[nodiscard]] constexpr bool operator==(const bitset&) const = default;
 
-
+        
+        /** 
+         * @brief Sets the specified bit. 
+         * @param val bit index to set. 
+         *
+         * @throws std::out_of_range if @p val is greater than or equal to N. 
+         */
         constexpr void set(size_t val) const
         {
             if (val >= N) 
@@ -64,7 +70,15 @@ namespace cta
             words[word_idx] |= (size_t{1} << offset);
         }
 
-
+        /** 
+         * @brief Tests whether a bit is set. 
+         *
+         * @param test bit index to test.
+         *
+         * @return true if the specified bit is set, otherwise false. 
+         *
+         * @note An index outside the bitset's range returns false. 
+         */
         [[nodiscard]] constexpr bool mem(size_t test) const noexcept
         {
             if (test >= N) {  return false; }
@@ -74,8 +88,17 @@ namespace cta
             return words[word_idx] >> offset & 1;
         }
 
-
-        [[nodiscard]] bitset& operator|=(const bitset& other) noexcept 
+        /**
+         * @brief Performs a set union operation with another bitset. 
+         *
+         * Each word in @p other is ORed with the corresponding word in 
+         * this bitset. 
+         *
+         * @param other bitset to OR with this bitset. 
+         *
+         * @return reference to this bitset after the operation. 
+         */
+        [[nodiscard]] constexpr bitset& operator|=(const bitset& other) noexcept 
         {
             namespace stdv = std::ranges::views;
             for (auto [idx, word] : stdv::enumerate(other.words))
@@ -85,8 +108,17 @@ namespace cta
             return *this;
         }
 
-
-        [[nodiscard]] bitset& operator&=(const bitset& other) noexcept 
+        /**
+         * @brief Performs a bitwise AND operation with another bitset. 
+         *
+         * Each word in @p other is ANDed with the corresponding word in 
+         * this bitset. 
+         *
+         * @param other bitset to AND with this bitset.
+         *
+         * @return reference to this bitset after the operation. 
+         */
+        [[nodiscard]] constexpr bitset& operator&=(const bitset& other) noexcept 
         {
             namespace stdv = std::ranges::views;
             for (auto [idx, word] : stdv::enumerate(other.words))
@@ -96,21 +128,34 @@ namespace cta
             return *this;
         }
 
-
+        
+        /**
+         * @brief Performs a bitwise OR operation between two bitsets. 
+         *
+         * @param other bitset to OR with this bitset. 
+         *
+         * @return a new bitset containing the result of the OR operation. 
+         */
         [[nodiscard]] 
             constexpr bitset operator|(const bitset& other) const noexcept 
         {
             return bitset(*this) |= other;
         }
 
-
+        /** 
+         * @brief Performs a bitwise AND operation between two bitsets. 
+         *
+         * @param other bitset to AND with this bitset. 
+         *
+         * @return a new bitset containing the result of the AND operation. 
+         */
         [[nodiscard]] 
             constexpr bitset operator&(const bitset& other) const noexcept 
         {
             return bitset(*this) &= other;
         }
 
-        /// @brief iterator type
+        /// @brief Iterator type over the set bits in the bitset
         class iterator {
             friend class bitset<N>;
         private:
