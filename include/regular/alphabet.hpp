@@ -11,6 +11,7 @@
 #include <array>
 #include <span>
 #include <utility>
+#include <ranges>
 
 namespace cta 
 {
@@ -59,14 +60,9 @@ namespace cta
         constexpr Alphabet()
             : Members{ Elements... }
         {
-            std::sort(std::begin(View()), std::end(View()));
+            std::ranges::sort(Members);
         }
         
-        [[nodiscard]] constexpr std::span<unsigned char> View() noexcept
-        {
-            return {Members, Size()};
-        }
-
         [[nodiscard]] constexpr size_t Size() const noexcept
         { 
             return sizeof...(Elements); 
