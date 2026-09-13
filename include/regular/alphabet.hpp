@@ -73,17 +73,17 @@ namespace cta
      *                  also that the characters are distinct (See
      *                  __detail::AreDistinct).
      */
-    template < unsigned char... Elements >
-        requires (sizeof...(Elements) > 0 && __detail::AreDistinct<Elements...>())
+    template < unsigned char... Elems >
+        requires (sizeof...(Elems) > 0 && __detail::AreDistinct<Elems...>())
     struct Alphabet 
     {
-        unsigned char Members[sizeof...(Elements)]; ///< Members of the alphabet
+        unsigned char Members[sizeof...(Elems)]; ///< Members of the alphabet
 
         /**
          * @brief constructor.
          */
         constexpr Alphabet()
-            : Members{ Elements... }
+            : Members{ Elems... }
         {
             std::ranges::sort(Members);
         }
@@ -95,7 +95,7 @@ namespace cta
          */
         [[nodiscard]] constexpr size_t Size() const noexcept
         { 
-            return sizeof...(Elements); 
+            return sizeof...(Elems); 
         }
 
     }; // Alphabet
