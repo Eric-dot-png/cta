@@ -159,9 +159,20 @@ namespace cta
         class iterator {
             friend class bitset<N>;
         private:
-            const bitset& parent;   //< reference to the parent bitset object
-            size_t bit_idx;         //< this iterator's bit index
+            const bitset& parent_;   //< reference to the parent bitset object
+            size_t bitIdx_;          //< this iterator's bit index
             
+
+            /** @brief constructor
+             *
+             *  @param parent parent bitset to iterate on 
+             *  @param bitIdx bit index of this iterator 
+             */
+            constexpr iterator(const bitset& parent, size_t bitIdx)
+                : parent_(parent), bitIdx_(bitIdx)
+            { }
+
+
             /**
              * @brief Static utility method to find the next set bit
              *
@@ -200,17 +211,17 @@ namespace cta
              */
             [[nodiscard]] constexpr size_t operator*() const noexcept
             { 
-                return bit_idx; 
+                return bitIdx_; 
             }
 
 
             /**
              * @brief pre-increment operator.
              */
-            [[nodiscard]] constexpr iterator& operator++() noexcept
+            constexpr iterator& operator++() noexcept
             {
-                ++bit_idx;
-                return (*this = iterator::find_next(parent, bit_idx));
+                bitIdx_ = iterator::find_next(parent_, ++bitIdx_).bitIdx_;
+                return *this;
             }
         
 
@@ -220,7 +231,7 @@ namespace cta
             [[nodiscard]] constexpr bool operator!=(const iterator& other) 
                 const noexcept
             {
-                return other.bit_idx != bit_idx;
+                return other.bitIdx_ != bitIdx_;
             }
 
         }; // struct bitset::iterator
