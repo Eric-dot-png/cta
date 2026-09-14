@@ -16,7 +16,7 @@
 namespace cta 
 {
     template < size_t N >
-    struct bitset 
+    struct Bitset 
     {
         /// @brief Constant for how large words are (in bits)
         static constexpr size_t WORD_SIZE = sizeof(size_t) * 8U;
@@ -29,27 +29,27 @@ namespace cta
         std::array<size_t, NUM_WORDS> words; ///< Words that make up bits
 
 
-        constexpr bitset() noexcept
+        constexpr Bitset() noexcept
             : words { 0 }
         { }
 
 
         template < size_t... Values >
             requires ((Values < N) && ...)
-        explicit constexpr bitset(std::index_sequence<Values...>) noexcept 
-            : bitset()
+        explicit constexpr Bitset(std::index_sequence<Values...>) noexcept 
+            : Bitset()
         {
             (set(Values), ...);
         }
 
 
-        constexpr bitset(const bitset&) = default;
+        constexpr Bitset(const Bitset&) = default;
 
 
-        [[nodiscard]] constexpr bitset& operator=(const bitset&) = default;
+        [[nodiscard]] constexpr Bitset& operator=(const Bitset&) = default;
 
 
-        [[nodiscard]] constexpr bool operator==(const bitset&) const = default;
+        [[nodiscard]] constexpr bool operator==(const Bitset&) const = default;
 
         
         /** 
@@ -99,7 +99,7 @@ namespace cta
          *
          * @return reference to this bitset after the operation. 
          */
-        [[nodiscard]] constexpr bitset& operator|=(const bitset& other) noexcept 
+        [[nodiscard]] constexpr Bitset& operator|=(const Bitset& other) noexcept 
         {
             namespace stdv = std::ranges::views;
             for (auto [idx, word] : stdv::enumerate(other.words))
@@ -119,7 +119,7 @@ namespace cta
          *
          * @return reference to this bitset after the operation. 
          */
-        [[nodiscard]] constexpr bitset& operator&=(const bitset& other) noexcept 
+        [[nodiscard]] constexpr Bitset& operator&=(const Bitset& other) noexcept 
         {
             namespace stdv = std::ranges::views;
             for (auto [idx, word] : stdv::enumerate(other.words))
@@ -138,9 +138,9 @@ namespace cta
          * @return a new bitset containing the result of the OR operation. 
          */
         [[nodiscard]] 
-            constexpr bitset operator|(const bitset& other) const noexcept 
+            constexpr Bitset operator|(const Bitset& other) const noexcept 
         {
-            return bitset(*this) |= other;
+            return Bitset(*this) |= other;
         }
 
         /** 
@@ -151,16 +151,16 @@ namespace cta
          * @return a new bitset containing the result of the AND operation. 
          */
         [[nodiscard]] 
-            constexpr bitset operator&(const bitset& other) const noexcept 
+            constexpr Bitset operator&(const Bitset& other) const noexcept 
         {
-            return bitset(*this) &= other;
+            return Bitset(*this) &= other;
         }
 
         /// @brief Iterator type over the set bits in the bitset
         class iterator {
-            friend class bitset<N>;
+            friend class Bitset<N>;
         private:
-            const bitset& parent_;   //< reference to the parent bitset object
+            const Bitset& parent_;   //< reference to the parent bitset object
             size_t bitIdx_;          //< this iterator's bit index
             
 
@@ -169,7 +169,7 @@ namespace cta
              *  @param parent parent bitset to iterate on 
              *  @param bitIdx bit index of this iterator 
              */
-            constexpr iterator(const bitset& parent, size_t bitIdx)
+            constexpr iterator(const Bitset& parent, size_t bitIdx)
                 : parent_(parent), bitIdx_(bitIdx)
             { }
 
@@ -183,8 +183,8 @@ namespace cta
              * @returns iterator instance containing the bit_idx of the 
              *          next set bit, or the end iterator.
              */
-            [[nodiscard]] static constexpr iterator find_next(
-                    const bitset& parent, size_t bit_idx) noexcept
+            [[nodiscard]] static constexpr iterator FindNext(
+                    const Bitset& parent, size_t bit_idx) noexcept
             {
                 if (bit_idx >= N) { return {parent, N}; }
                 
@@ -224,7 +224,7 @@ namespace cta
              */
             constexpr iterator& operator++() noexcept
             {
-                bitIdx_ = iterator::find_next(parent_, ++bitIdx_).bitIdx_;
+                bitIdx_ = iterator::FindNext(parent_, ++bitIdx_).bitIdx_;
                 return *this;
             }
         
@@ -248,7 +248,7 @@ namespace cta
          */ 
         [[nodiscard]] constexpr iterator begin() const noexcept
         { 
-            return iterator::find_next(*this, 0); 
+            return iterator::FindNext(*this, 0); 
         }
         
 
