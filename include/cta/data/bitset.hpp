@@ -183,7 +183,7 @@ namespace cta
              * @returns iterator instance containing the bit_idx of the 
              *          next set bit, or the end iterator.
              */
-            [[nodiscard]] static constexpr iterator FindNext(
+            [[nodiscard]] static constexpr iterator findNext(
                     const Bitset& parent, size_t bit_idx) noexcept
             {
                 if (bit_idx >= N) { return {parent, N}; }
