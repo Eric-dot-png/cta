@@ -58,7 +58,7 @@ namespace cta
          *
          * @throws std::out_of_range if @p val is greater than or equal to N. 
          */
-        constexpr void set(size_t val) const
+        constexpr void set(size_t val)
         {
             if (val >= N) 
             { 
@@ -69,6 +69,7 @@ namespace cta
             size_t offset   = val % WORD_SIZE;
             words[word_idx] |= (size_t{1} << offset);
         }
+
 
         /** 
          * @brief Tests whether a bit is set. 
@@ -188,7 +189,8 @@ namespace cta
                 if (bit_idx >= N) { return {parent, N}; }
                 
                 size_t word_idx = bit_idx / WORD_SIZE;
-                size_t word = parent.words[word_idx] >> (bit_idx % WORD_SIZE);
+                size_t offset = bit_idx % WORD_SIZE;
+                size_t word = parent.words[word_idx] >> offset;
                 while ( word == 0 )
                 {
                     ++word_idx;
@@ -197,8 +199,10 @@ namespace cta
                         return {parent, N};
                     }
                     word = parent.words[word_idx];
+                    offset = 0;
                 }
-                bit_idx = word_idx * WORD_SIZE + std::countr_zero(word);
+                bit_idx = 
+                    word_idx * WORD_SIZE + std::countr_zero(word) + offset;
                 return {parent, bit_idx};
            }
 
