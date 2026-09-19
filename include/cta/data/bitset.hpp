@@ -224,7 +224,7 @@ namespace cta
              */
             constexpr iterator& operator++() noexcept
             {
-                bitIdx_ = iterator::FindNext(parent_, ++bitIdx_).bitIdx_;
+                bitIdx_ = iterator::findNext(parent_, ++bitIdx_).bitIdx_;
                 return *this;
             }
         
@@ -248,7 +248,7 @@ namespace cta
          */ 
         [[nodiscard]] constexpr iterator begin() const noexcept
         { 
-            return iterator::FindNext(*this, 0); 
+            return iterator::findNext(*this, 0); 
         }
         
 
