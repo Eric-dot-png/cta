@@ -98,6 +98,16 @@ namespace cta
             return sizeof...(Elems); 
         }
 
+        [[nodiscard]] constexpr std::span<const unsigned char> GetMembers() const noexcept
+        {
+            return std::span<const unsigned char>(Members, sizeof...(Elems));
+        }
+
+        [[nodiscard]] constexpr bool IsMember(unsigned char c) const noexcept
+        {
+            return std::ranges::binary_search(Members, c);
+        }
+
     }; // Alphabet
  
 
