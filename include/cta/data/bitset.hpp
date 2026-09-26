@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <ranges>
 #include <utility>
+#include <initializer_list>
 
 namespace cta 
 {
@@ -34,12 +35,13 @@ namespace cta
         { }
 
 
-        template < size_t... Values >
-            requires ((Values < N) && ...)
-        explicit constexpr Bitset(std::index_sequence<Values...>) noexcept 
+        explicit constexpr Bitset(std::initializer_list<size_t> values) noexcept 
             : Bitset()
         {
-            (set(Values), ...);
+            for (size_t val : values)
+            {
+                set(val);
+            }
         }
 
 
