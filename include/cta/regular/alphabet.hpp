@@ -12,6 +12,7 @@
 #include <span>
 #include <utility>
 #include <ranges>
+#include "../data/bitset.hpp"
 
 namespace cta 
 {
@@ -40,12 +41,11 @@ namespace cta
             return it == std::end(AsArray);
         }
 
-
         /**
          * @brief Function to populate a templated class T with a pack
          *        of unsigned characters casted from an integer sequence.
          *        Used in this file to facilitate the creation of the default
-         *        alphabet.
+         *        alphabet. (possibly not needed here anymore, but left in for now)
          *
          * @tparam T The class to populate.
          * @tparam I The template parameter pack of idices in index_sequence
@@ -75,48 +75,36 @@ namespace cta
      */
     template < unsigned char... Elems >
         requires (sizeof...(Elems) > 0 && __detail::AreDistinct<Elems...>())
-    struct Alphabet 
+    struct Alphabet
     {
-        unsigned char Members[sizeof...(Elems)]; ///< Members of the alphabet
-
-        /**
-         * @brief constructor.
-         */
-        constexpr Alphabet()
-            : Members{ Elems... }
-        {
-            std::ranges::sort(Members);
-        }
+        static constexpr Bitset< std::numeric_limits<unsigned char>::max() + 1 > 
+            Members = { (static_cast<size_t>(Elems), ...) }; ///< Members of the alphabet
         
         /**
          * @brief Method to get the size of this alphabet.
          *
          * @return the size of this alphabet.
          */
-        [[nodiscard]] constexpr size_t Size() const noexcept
+        [[nodiscard]] static constexpr size_t Size() noexcept
         { 
             return sizeof...(Elems); 
         }
 
-        [[nodiscard]] constexpr std::span<const unsigned char> GetMembers() const noexcept
-        {
-            return std::span<const unsigned char>(Members, sizeof...(Elems));
-        }
+        // No longer needed
+        // [[nodiscard]] staticconstexpr std::span<const unsigned char> GetMembers() const noexcept
+        // {
+        //     return std::span<const unsigned char>(Members, sizeof...(Elems));
+        // }
 
-        [[nodiscard]] constexpr bool IsMember(unsigned char c) const noexcept
+        [[nodiscard]] static constexpr bool IsMember(unsigned char c) noexcept
         {
-            return std::ranges::binary_search(Members, c);
+            return Members.mem(static_cast<size_t>(c));
         }
 
     }; // Alphabet
  
 
-    inline constexpr auto DefaultAlphabet = 
-        __detail::PopulateWith<Alphabet>(
-            std::make_index_sequence<
-                std::numeric_limits<unsigned char>::max()+1
-            >{}
-        );
+    using DefaultAlphabet = decltype(__detail::PopulateWith<Alphabet>(std::make_index_sequence<256>{}));
 
 
 } // namespace cta
