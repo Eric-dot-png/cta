@@ -29,12 +29,16 @@ namespace cta
 
         std::array<size_t, NUM_WORDS> words; ///< Words that make up bits
 
-
+        ///@brief Default constructor, sets all bits to 0.
         constexpr Bitset() noexcept
             : words { 0 }
         { }
 
-
+        /** 
+         * @brief Constructor that sets the bits specified in the initializer list to 1.
+         *
+         * @tparam values The indices of the bits to set to 1.
+         */
         explicit constexpr Bitset(std::initializer_list<size_t> values) noexcept 
             : Bitset()
         {

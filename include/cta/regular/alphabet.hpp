@@ -19,7 +19,7 @@ namespace cta
     namespace __detail
     {
         /** 
-         * @breif Function to determine if a template pack of 
+         * @brief Function to determine if a template pack of 
          *        unsigned characters are distinct from eachother.
          *        Used in this file to make sure that the pack argument
          *        in Alphabet contains only unique characters.
@@ -90,12 +90,6 @@ namespace cta
             return sizeof...(Elems); 
         }
 
-        // No longer needed
-        // [[nodiscard]] staticconstexpr std::span<const unsigned char> GetMembers() const noexcept
-        // {
-        //     return std::span<const unsigned char>(Members, sizeof...(Elems));
-        // }
-
         [[nodiscard]] static constexpr bool IsMember(unsigned char c) noexcept
         {
             return Members.mem(static_cast<size_t>(c));
@@ -103,7 +97,10 @@ namespace cta
 
     }; // Alphabet
  
-
+    /** 
+     * @brief Default alphabet type for regular languages.
+     *        Contains all unsigned char values.
+     */
     using DefaultAlphabet = decltype(__detail::PopulateWith<Alphabet>(std::make_index_sequence<256>{}));
 
 
