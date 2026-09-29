@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <ranges>
 #include <utility>
+#include <initializer_list>
 
 namespace cta 
 {
@@ -28,18 +29,23 @@ namespace cta
 
         std::array<size_t, NUM_WORDS> words; ///< Words that make up bits
 
-
+        ///@brief Default constructor, sets all bits to 0.
         constexpr Bitset() noexcept
             : words { 0 }
         { }
 
-
-        template < size_t... Values >
-            requires ((Values < N) && ...)
-        explicit constexpr Bitset(std::index_sequence<Values...>) noexcept 
+        /** 
+         * @brief Constructor that sets the bits specified in the initializer list to 1.
+         *
+         * @tparam values The indices of the bits to set to 1.
+         */
+        explicit constexpr Bitset(std::initializer_list<size_t> values) noexcept 
             : Bitset()
         {
-            (set(Values), ...);
+            for (size_t val : values)
+            {
+                set(val);
+            }
         }
 
 
