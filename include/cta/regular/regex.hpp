@@ -1,132 +1,390 @@
-#pragma once 
+#pragma once
 
-#include <string_view>
+#include <cstddef>
+#include <expected>
 #include <memory>
+#include <optional>
+#include <string_view>
+#include <utility>
 #include <variant>
 #include <vector>
-#include <expected>
+
+#include "data/bitset.hpp"
 
 /**
- * Regex grammar 
+ * Regex grammar
  *
  *  alt     := seq ('|' seq)*
  *  seq     := repeat+
- *  repeat  := atom ['*' '+' '?']?
- *  atom    := ( '(' alt ')' ) | literal | range 
- *  literal := a+ for a in alpabet
+ *  repeat  := atom ['*' '+' '?']*
+ *  atom    := '(' alt ')' | literal | range
+ *  literal := a for a in alphabet
  *  range   := '[' '^'? a+ for a in alphabet ']'
  */
 
-namespace cta 
+namespace cta
 {
-    struct lit;
-    struct rep; 
-    struct seq;
-    struct alt;
-    struct range;
+    template<class Alphabet = DefaultAlphabet> struct lit;
+    template<class Alphabet = DefaultAlphabet> struct rep;
+    template<class Alphabet = DefaultAlphabet> struct seq;
+    template<class Alphabet = DefaultAlphabet> struct alt;
+    template<class Alphabet = DefaultAlphabet, size_t N = Alphabet::Size()> struct range;
 
+    template<class Alphabet = DefaultAlphabet, size_t N = Alphabet::Size()>
     using node = std::variant<
-        std::unique_ptr<lit>,
-        std::unique_ptr<rep>,
-        std::unique_ptr<seq>,
-        std::unique_ptr<alt>,
-        std::unique_ptr<range>
+        std::unique_ptr<lit<Alphabet>>,
+        std::unique_ptr<rep<Alphabet>>,
+        std::unique_ptr<seq<Alphabet>>,
+        std::unique_ptr<alt<Alphabet>>,
+        std::unique_ptr<range<Alphabet, N>>
     >;
 
-    struct lit { unsigned char data; };
-    struct rep { node next; };
-    struct seq { node left, right; };
-    struct alt { node left, right; };
-    struct range { std::vector<unsigned char> choices; bool inverted; };
-
-    struct parse_error 
+    template<class Alphabet>
+    struct lit
     {
-        enum class error_kind 
+        unsigned char data;
+    };
+
+    template<class Alphabet>
+    struct rep
+    {
+        enum class type
         {
-            // error kinds here
+            zero_or_more,
+            one_or_more,
+            zero_or_one
+        } const kind;
+        node<Alphabet> next;
+    };
+
+    template<class Alphabet>
+    struct seq
+    {
+        node<Alphabet> left;
+        node<Alphabet> right;
+    };
+
+    template<class Alphabet>
+    struct alt
+    {
+        node<Alphabet> left;
+        node<Alphabet> right;
+    };
+
+    template<class Alphabet, size_t N>
+    struct range
+    {
+        Bitset<N> choices;
+        bool inverted;
+    };
+
+    template<class Alphabet = DefaultAlphabet>
+    struct parse_error
+    {
+        enum class error_kind
+        {
+            unexpected_end_of_string,
+            missing_closing_parenthesis,
+            missing_closing_range,
+            empty_range,
+            character_not_in_alphabet,
+            unexpected_character
         };
 
         std::string_view rest;
         error_kind kind;
     };
-    
-    struct parse_ok 
+
+    template<class Alphabet = DefaultAlphabet>
+    struct parse_ok
     {
-        node node;
+        cta::node<Alphabet> node;
         std::string_view rest;
     };
 
+    template<class Alphabet = DefaultAlphabet>
+    using parse_result = std::expected<parse_ok<Alphabet>, parse_error<Alphabet>>;
 
-    using parse_result = std::expected<parse_ok, parse_error>;
-        
-    [[nodiscard]] constexpr parse_result parse_alt(std::string_view string);
-    [[nodiscard]] constexpr parse_result parse_seq(std::string_view string);
-    [[nodiscard]] constexpr parse_result parse_repeat(std::string_view string);
-    [[nodiscard]] constexpr parse_result parse_atom(std::string_view string);
-    [[nodiscard]] constexpr parse_result parse_literal(std::string_view string);
-    [[nodiscard]] constexpr parse_result parse_range(std::string_view string);
+    template<class Alphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse_alt(std::string_view string);
 
+    template<class Alphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse_seq(std::string_view string);
 
-    [[nodiscard]]
-    constexpr parse_result parse(std::string_view string)
+    template<class Alphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse_repeat(std::string_view string);
+
+    template<class Alphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse_atom(std::string_view string);
+
+    template<class Alphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse_literal(std::string_view string);
+
+    template<class Alphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse_range(std::string_view string);
+
+    template<class Alphabet = DefaultAlphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse(std::string_view string)
     {
-        return parse_alt(string);
+        return parse_alt<Alphabet>(string);
     }
-    
-    [[nodiscard]]
-    constexpr parse_result parse_alt(std::string_view string) 
+
+    template<class Alphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse_alt(std::string_view string)
     {
-        auto left = parse_seq(string);
+        auto left = parse_seq<Alphabet>(string);
         if (!left.has_value()) { return left; }
 
         auto [ret, rest] = std::move(left.value());
-        while (!rest.empty() && rest[0] == '|') 
+        while (!rest.empty() && rest[0] == '|')
         {
             rest = rest.substr(1);
-            auto right = parse_seq(rest);
+            auto right = parse_seq<Alphabet>(rest);
             if (!right.has_value()) { return right; }
-            ret = std::make_unique<alt>(std::move(ret), std::move(right->node));
+            ret = std::make_unique<alt<Alphabet>>(alt<Alphabet>{
+                .left = std::move(ret),
+                .right = std::move(right->node)
+            });
             rest = right->rest;
         }
 
-        return parse_ok { 
+        return parse_ok<Alphabet>{
             .node = std::move(ret),
-            .rest = rest 
+            .rest = rest
         };
     }
-    
-    template<class... Ts> struct overloads : Ts... { using Ts::operator()...; };
-    template<class... Ts> overloads(Ts...) -> overloads<Ts...>; // Deducted guide (C++17)
 
-    constexpr std::size_t tree_size(const node& n) {
-        constexpr auto invocation = overloads {
-            [](const std::unique_ptr<lit>&) { return std::size_t{ 0 }; },
-            [](const std::unique_ptr<range>&) { return std::size_t{ 0 }; },
-            [&](const std::unique_ptr<rep>& rep) { return tree_size(rep->next); },
-            [&](const std::unique_ptr<seq>& seq) { return tree_size(seq->left) + tree_size(seq->right); },
-            [&](const std::unique_ptr<alt>& alt) { return tree_size(alt->left) + tree_size(alt->right); },
+    template<class Alphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse_seq(std::string_view string)
+    {
+        auto left = parse_repeat<Alphabet>(string);
+        if (!left.has_value()) { return left; }
+
+        auto [ret, rest] = std::move(left.value());
+        while (!rest.empty() && rest[0] != '|' && rest[0] != ')')
+        {
+            auto right = parse_repeat<Alphabet>(rest);
+            if (!right.has_value()) { return right; }
+            ret = std::make_unique<seq<Alphabet>>(seq<Alphabet>{
+                .left = std::move(ret),
+                .right = std::move(right->node)
+            });
+            rest = right->rest;
+        }
+
+        return parse_ok<Alphabet>{
+            .node = std::move(ret),
+            .rest = rest
+        };
+    }
+
+    template<class Alphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse_repeat(std::string_view string)
+    {
+        auto atom = parse_atom<Alphabet>(string);
+        if (!atom.has_value()) { return atom; }
+
+        auto [ret, rest] = std::move(atom.value());
+        while (!rest.empty())
+        {
+            auto kind = [&]() -> std::optional<typename rep<Alphabet>::type>
+            {
+                switch (rest[0])
+                {
+                    case '*': return rep<Alphabet>::type::zero_or_more;
+                    case '+': return rep<Alphabet>::type::one_or_more;
+                    case '?': return rep<Alphabet>::type::zero_or_one;
+                    default: return std::nullopt;
+                }
+            }();
+            if (!kind.has_value()) { break; }
+
+            ret = std::make_unique<rep<Alphabet>>(rep<Alphabet>{
+                .kind = *kind,
+                .next = std::move(ret)
+            });
+            rest = rest.substr(1);
+        }
+
+        return parse_ok<Alphabet>{
+            .node = std::move(ret),
+            .rest = rest
+        };
+    }
+
+    template<class Alphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse_atom(std::string_view string)
+    {
+        if (string.empty())
+        {
+            return std::unexpected(parse_error<Alphabet>{
+                .rest = string,
+                .kind = parse_error<Alphabet>::error_kind::unexpected_end_of_string
+            });
+        }
+
+        if (string[0] == '(')
+        {
+            auto parsed = parse_alt<Alphabet>(string.substr(1));
+            if (!parsed.has_value()) { return parsed; }
+            auto [ret, rest] = std::move(parsed.value());
+            if (rest.empty() || rest[0] != ')')
+            {
+                return std::unexpected(parse_error<Alphabet>{
+                    .rest = rest,
+                    .kind = parse_error<Alphabet>::error_kind::missing_closing_parenthesis
+                });
+            }
+            return parse_ok<Alphabet>{
+                .node = std::move(ret),
+                .rest = rest.substr(1)
+            };
+        }
+
+        if (string[0] == '[') { return parse_range<Alphabet>(string); }
+        if (string[0] == '|' || string[0] == ')' ||
+            string[0] == '*' || string[0] == '+' || string[0] == '?')
+        {
+            if (!Alphabet::IsMember(static_cast<unsigned char>(string[0])))
+            {
+                return std::unexpected(parse_error<Alphabet>{
+                    .rest = string,
+                    .kind = parse_error<Alphabet>::error_kind::unexpected_character
+                });
+            }
+        }
+        return parse_literal<Alphabet>(string);
+    }
+
+    template<class Alphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse_literal(std::string_view string)
+    {
+        if (string.empty())
+        {
+            return std::unexpected(parse_error<Alphabet>{
+                .rest = string,
+                .kind = parse_error<Alphabet>::error_kind::unexpected_end_of_string
+            });
+        }
+
+        const auto character = static_cast<unsigned char>(string[0]);
+        if (!Alphabet::IsMember(character))
+        {
+            return std::unexpected(parse_error<Alphabet>{
+                .rest = string,
+                .kind = parse_error<Alphabet>::error_kind::character_not_in_alphabet
+            });
+        }
+
+        return parse_ok<Alphabet>{
+            .node = std::make_unique<lit<Alphabet>>(lit<Alphabet>{ .data = character }),
+            .rest = string.substr(1)
+        };
+    }
+
+    template<class Alphabet>
+    [[nodiscard]] constexpr parse_result<Alphabet> parse_range(std::string_view string)
+    {
+        auto rest = string.substr(1);
+        bool inverted = false;
+        if (!rest.empty() && rest[0] == '^')
+        {
+            inverted = true;
+            rest = rest.substr(1);
+        }
+
+        // !! LEFT OFF HERE !! Use Bitset for range representation
+        std::vector<unsigned char> choices;
+        while (!rest.empty() && rest[0] != ']')
+        {
+            const auto character = static_cast<unsigned char>(rest[0]);
+            if (character == '-')
+            {
+                const unsigned char start = choices.back();
+                rest = rest.substr(1);
+                if (rest.empty())
+                {
+                    return std::unexpected(parse_error<Alphabet>{
+                        .rest = rest,
+                        .kind = parse_error<Alphabet>::error_kind::missing_closing_range
+                    });
+                }
+                const unsigned character end = static_cast<unsigned char>(rest[0]);
+                if (!Alphabet::IsMember(end))
+                {
+                    return std::unexpected(parse_error<Alphabet>{
+                        .rest = rest,
+                        .kind = parse_error<Alphabet>::error_kind::character_not_in_alphabet
+                    });
+                }
+                for (unsigned char c = start + 1; c <= end; ++c)
+                {
+                    choices.push_back(c);
+                }
+            }
+            if (!Alphabet::IsMember(character))
+            {
+                return std::unexpected(parse_error<Alphabet>{
+                    .rest = rest,
+                    .kind = parse_error<Alphabet>::error_kind::character_not_in_alphabet
+                });
+            }
+            choices.push_back(character);
+            rest = rest.substr(1);
+        }
+
+        if (rest.empty())
+        {
+            return std::unexpected(parse_error<Alphabet>{
+                .rest = rest,
+                .kind = parse_error<Alphabet>::error_kind::missing_closing_range
+            });
+        }
+        if (choices.empty())
+        {
+            return std::unexpected(parse_error<Alphabet>{
+                .rest = rest,
+                .kind = parse_error<Alphabet>::error_kind::empty_range
+            });
+        }
+
+        return parse_ok<Alphabet>{
+            .node = std::make_unique<range<Alphabet>>(range<Alphabet>{
+                .choices = { static_cast<size_t>(choices) },
+                .inverted = inverted
+            }),
+            .rest = rest.substr(1)
+        };
+    }
+
+    template<class... Ts>
+    struct overloads : Ts...
+    {
+        using Ts::operator()...;
+    };
+
+    template<class... Ts>
+    overloads(Ts...) -> overloads<Ts...>;
+
+    template<class Alphabet>
+    constexpr std::size_t tree_size(const node<Alphabet>& n)
+    {
+        const auto invocation = overloads{
+            [](const std::unique_ptr<lit<Alphabet>>&) { return std::size_t{0}; },
+            [](const std::unique_ptr<range<Alphabet>>&) { return std::size_t{0}; },
+            [&](const std::unique_ptr<rep<Alphabet>>& repetition)
+            {
+                return tree_size(repetition->next);
+            },
+            [&](const std::unique_ptr<seq<Alphabet>>& sequence)
+            {
+                return tree_size(sequence->left) + tree_size(sequence->right);
+            },
+            [&](const std::unique_ptr<alt<Alphabet>>& alternation)
+            {
+                return tree_size(alternation->left) + tree_size(alternation->right);
+            }
         };
         return 1 + std::visit(invocation, n);
     }
-
-
-    /**
-     *    template < ct_string UserRegexString >
-     *    constexpr auto parse_to_stack() {
-     *          static constexpr std::string_view view { UserRegexString };
-     *          static constexpr parse_result result = parse(view);
-     *          // assume its ok 
-     *          static constexpr result_size = tree_size(result->node);
-     *          std::array<stack_node, result_size> ret { };
-     *          ...
-     *          return ret;
-     *    }
-     *
-     *  
-     *    template < ct_string Regex > 
-     *    constexpr bool matches(std::string_view test) {
-     *          static constexpr regex_ast = parse(Regex);
-     *    }
-     *  
-     */
 }

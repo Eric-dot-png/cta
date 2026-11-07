@@ -77,8 +77,8 @@ namespace cta
         requires (sizeof...(Elems) > 0 && __detail::AreDistinct<Elems...>())
     struct Alphabet
     {
-        static constexpr Bitset< std::numeric_limits<unsigned char>::max() + 1 > 
-            Members = { (static_cast<size_t>(Elems), ...) }; ///< Members of the alphabet
+        static constexpr Bitset< std::numeric_limits<unsigned char>::max() + 1 >
+            Members{ static_cast<size_t>(Elems)... }; ///< Members of the alphabet
         
         /**
          * @brief Method to get the size of this alphabet.
